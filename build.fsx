@@ -57,7 +57,7 @@ let platformTool tool path =
             | Some v -> v
 
 let npmTool =
-    platformTool "npm"  "npm.cmd"
+    platformTool "npm"  "npm.bat"
 
 let vsceTool = lazy (platformTool "vsce" "vsce.cmd")
 
@@ -261,11 +261,13 @@ Target.create "CopyDocs" (fun _ ->
 )
 
 Target.create "RunScript" (fun _ ->
-    Fable.run { Fable.DefaultArgs with Command = Fable.Build; Debug = false; Webpack = Fable.WithWebpack None }
+    Fable.run { Fable.DefaultArgs with Command = Fable.Build; Debug = false; }
+    Yarn.exec "webpack --mode=production" id
 )
 
 Target.create "RunDevScript" (fun _ ->
-    Fable.run { Fable.DefaultArgs with Command = Fable.Build; Debug = true; Webpack = Fable.WithWebpack None }
+    Fable.run { Fable.DefaultArgs with Command = Fable.Build; Debug = true; }
+    Yarn.exec "webpack" id
 )
 
 

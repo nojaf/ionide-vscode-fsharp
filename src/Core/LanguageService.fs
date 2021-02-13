@@ -608,12 +608,45 @@ Consider:
                 return fsacPaths.MSBuild
         }
 
-    let private createClient opts =
-        let options =
-            createObj [
-                "run" ==> opts
-                "debug" ==> opts
-                ] |> unbox<ServerOptions>
+    let private createClient () =
+//        let options =
+//            createObj [
+//                "run" ==> opts
+//                "debug" ==> opts
+//                ] |> unbox<ServerOptions>
+
+        let options : ServerOptions =
+            let startDocker (args: string array) : JS.Promise<U4<_,StreamInfo,_,_>> =
+                emitJsStatement args """
+const { spawn } = require('child_process');
+
+return new Promise((resolve, reject) => {
+    // const cp = spawn("docker", $0);
+    const cp = spawn("dotnet", $0);
+    resolve({ reader: cp.stdout, writer: cp.stdin });
+})
+"""
+            let pluginPath = VSCodeExtension.ionidePluginPath ()
+//            let dockerArgs =
+//                [|
+//                    "-i"
+//                    "-a"
+//                    "stdin"
+//                    "-a"
+//                    "stdout"
+//                    "-a"
+//                    "stderr"
+//                    "--rm"
+//                    "-v"
+//                    sprintf "%s:/plugin" pluginPath
+//                    "-w"
+//                    "/plugin"
+//                    "mcr.microsoft.com/dotnet/sdk:5.0-focal"
+//                    "dotnet"
+//                    "./bin/fsautocomplete.dll"
+//                |]
+            let dockerArgs = [| @"C:\Users\nojaf\Projects\ionide-vscode-fsharp\release\bin\fsautocomplete.dll" |]
+            U7.Case7 (fun () -> startDocker dockerArgs)
 
         let fileDeletedWatcher = workspace.createFileSystemWatcher("**/*.{fs,fsx}", true, true, false)
 
@@ -742,8 +775,8 @@ Consider:
 
     let start (c : ExtensionContext) =
         promise {
-            let! startOpts = getOptions ()
-            let cl = createClient startOpts
+            // let! startOpts = getOptions ()
+            let cl = createClient ()
             c.subscriptions.Add (cl.start ())
             let! _ = readyClient cl
             return ()
