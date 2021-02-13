@@ -629,10 +629,28 @@ return new Promise((resolve, reject) => {
     });
 
     const t = new Transform({
-      readableObjectMode: true,
+      objectMode: true,
       transform(chunk, encoding, callback) {
-        console.log("transform", chunk.toString('utf8'));
-        this.push(chunk);
+        const value = chunk.toString('utf8');
+        const isHeader = value && value.startsWith("Content-Length:");
+        if(!isHeader){
+            console.log('value', value);
+            const msg = JSON.parse(value);
+            let updatedMsg = value;
+
+            if(msg.method === "initialize"){
+                msg.params.rootPath = "/workspace";
+                msg.params.rootUri = "file:///workspace";
+                msg.params.workspaceFolders = [ { "uri" : "file:///workspace", "name": "fantomas" } ];
+                updatedMsg = JSON.stringify(msg);
+            }
+            const envelope = `Content-Length: ${updatedMsg.length}\r\n\r\n${updatedMsg}`;
+            console.log('encoding', encoding);
+            console.log('envelope', envelope);
+            this.push(envelope, encoding);
+        } else {
+            // don't send anything
+        }
         callback();
       }
     });
