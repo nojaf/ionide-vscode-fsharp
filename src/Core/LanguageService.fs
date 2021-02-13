@@ -620,13 +620,26 @@ Consider:
                 printfn "ARGS: %A" args
                 emitJsStatement args """
 const { spawn } = require('child_process');
+const { Transform } = require("stream");
 
 return new Promise((resolve, reject) => {
     const cp = spawn("docker", $0);
     cp.stderr.on('data', (data) => {
       console.error(`stderr: ${data}`);
     });
-    resolve({ reader: cp.stdout, writer: cp.stdin });
+
+    const t = new Transform({
+      readableObjectMode: true,
+      transform(chunk, encoding, callback) {
+        console.log("transform", chunk.toString('utf8'));
+        this.push(chunk);
+        callback();
+      }
+    });
+
+    const writer = cp.stdin.pipe(t);
+
+    resolve({ reader: cp.stdout, writer: writer });
 })
 """
             let pluginPath = VSCodeExtension.ionidePluginPath ()
@@ -644,6 +657,7 @@ return new Promise((resolve, reject) => {
                     "mcr.microsoft.com/dotnet/sdk:5.0-focal"
                     "dotnet"
                     "/plugin/bin/fsautocomplete.dll"
+                    "--verbose"
                 |]
             U7.Case7 (fun () -> startDocker dockerArgs)
 
